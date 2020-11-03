@@ -30,21 +30,26 @@ func parseHAR(downloadDir string) {
 	file, err := os.Open(harFile)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err, `: `, `"`+harFile+`"`)
-		return
+		os.Exit(1)
 	}
 	var har HARlog
 	var decoder = json.NewDecoder(file)
 	if err := decoder.Decode(&har); err != nil {
 		fmt.Fprint(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
+	file.Close()
 	for _, e := range har.Log.Entries {
 		if e.Response.Content.Size == 0 {
 			continue
 		}
-		ustring, _ := url.PathUnescape(e.Request.URL)
-		var splitPath = strings.Split(ustring, `/`)
-		var filename = splitPath[len(splitPath)-1]
+		var URL *url.URL
+		URL, err = url.Parse(e.Request.URL)
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
+		}
+		var filename = URL.Path[strings.LastIndex(URL.Path, `/`)+1:]
 		var b []byte
 		var err error
 		switch e.Response.Content.Encoding {
@@ -52,15 +57,14 @@ func parseHAR(downloadDir string) {
 			b, err = base64.StdEncoding.DecodeString(e.Response.Content.Text)
 			if err != nil {
 				fmt.Fprint(os.Stderr, err)
-				continue
+				os.Exit(1)
 			}
 		default:
 			b = []byte(e.Response.Content.Text)
 		}
-
 		if err := ioutil.WriteFile(filepath.Join(downloadDir, filename), b, os.ModePerm); err != nil {
 			fmt.Fprint(os.Stderr, err)
-			continue
+			os.Exit(1)
 		}
 	}
 }
