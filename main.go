@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -62,7 +61,7 @@ func parseHAR(downloadDir string) {
 		default:
 			b = []byte(e.Response.Content.Text)
 		}
-		if err := ioutil.WriteFile(filepath.Join(downloadDir, filename), b, os.ModePerm); err != nil {
+		if err := os.WriteFile(filepath.Join(downloadDir, filename), b, os.ModePerm); err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
